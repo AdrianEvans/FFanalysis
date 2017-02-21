@@ -6,7 +6,7 @@
 
 
 import MySQLdb
-conn = MySQLdb.connect("adrianevans.mysql.pythonanywhere-services.com","adrianevans","CJ3ByCTc!","adrianevans$fossilfinder")
+conn = MySQLdb.connect("server-name-here","user-name-here","password-here","database-name-here")
 c = conn.cursor()
 
 # very unclean way of counting the number of rows in the raw data table to enable a while loop to count rows as it rips and parses each one
