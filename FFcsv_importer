@@ -3,7 +3,7 @@ import MySQLdb
 
 f=open("fossil-finder-classifications-000.csv")
 
-conn = MySQLdb.connect("adrianevans.mysql.pythonanywhere-services.com","adrianevans","CJ3ByCTc!","adrianevans$fossilfinder")
+conn = MySQLdb.connect("server-name-here","user-name-here","password-here","database-name-here")
 c = conn.cursor()
 
 for row in csv.reader(f):
