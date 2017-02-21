@@ -20,7 +20,7 @@ while numrows_raw_data > 0:
     print (numrows_raw_data)
     numrows_raw_data_str = str(numrows_raw_data)
     #sql query to pull row from database
-    numrows = c.execute("select classification_id, annotations from raw_data where reference_key= %s",(numrows_raw_data_str,))
+    numrows = c.execute("select classification_id, annotations, user_name, subject_ids, created_at from raw_data where workflow_id = '371' and reference_key= %s",(numrows_raw_data_str,))
 
     #turns output from query into useful form - a list
     rows = c.fetchall()
@@ -56,7 +56,7 @@ while numrows_raw_data > 0:
         var1_3 = var1[var1.find(b"tool_label")+13:]
         var1_3 = var1_3[:var1_3.find(b"\"")]
 
-        c.execute("INSERT INTO click_data (classification_id, x_coord, y_coord, label, reference_key) VALUES (%s, %s, %s, %s, NULL)",(rows1[0], var1_1, var1_2, var1_3))
+        c.execute("INSERT INTO click_data (classification_id, x_coord, y_coord, label, user_name, subject_ids, created_at, reference_key) VALUES (%s, %s, %s, %s, %s, %s, %s, NULL)",(rows1[0], var1_1, var1_2, var1_3, rows1[4], rows1[5], rows1[6]))
         conn.commit()
 
         var1 = var1[var1.find(b"\"}")+2:]
