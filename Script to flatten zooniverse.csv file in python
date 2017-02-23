@@ -1,0 +1,128 @@
+import csv
+import json
+import sys
+from datetime import datetime
+
+csv.field_size_limit(sys.maxsize)
+
+# Give full path and filenames for input and output files (user specific)
+location = r'E:\FFData\FFClass\fossil-finder-classifications.csv'
+out_location = r'C:\py\FFClass\Select_points_inrange.csv'
+
+
+# function generates as user_name for selected users that did not log in
+# looks up the ip address in a sorted list of user ip addresses that tagged at least ten subjects.
+# this could be improved - file is repeatedly opened and closed, and repeatedly read. Should read it into
+# memory once, then just search it - judged not worth fixing :).
+def pickip(useid):
+    ipname = ''
+    running = True
+    ipfile = open(r'E:\FFData\FFIPusers\IPuser.csv', 'r')
+    while running:
+        ipline = ipfile.readline()
+        if ipline == '':
+            break
+        if ipline.find(useid) >= 0:
+            ipname = 'QI' + ipline[ipline.find(',') + 1:ipline.find(',') + 8]
+            running = False
+    ipfile.close()
+    return ipname
+
+
+with open(out_location, 'w', newline='') as file:
+    fieldnames = ['line_number', 'subject_ids', 'image_number', 'user_name', 'workflow_id',
+                  'workflow_version', 'classification_id', 'created_at', 'duration',
+                  'first_task', 'summary', 'bones', 'tools', 'maybes']
+    writer = csv.DictWriter(file, fieldnames=fieldnames)
+    writer.writeheader()
+    i = 0
+    with open(location) as f:
+        r = csv.DictReader(f)
+        for row in r:
+            i += 1
+            if i >= 549:  # first line of the zooniverse data to be flattened
+                if i == 667464:  # last line of zooniverse file to read if not EOF
+                    break
+                # loads json strings as python objects (dictionaries and lists)
+                row['annotations'] = json.loads(row['annotations'])
+                row['subject_data'] = json.loads(row['subject_data'])
+                row['metadata'] = json.loads(row['metadata'])
+
+                # generate searchable image_number from the subject data field
+                line = str(row['subject_data'])
+                start = line.find('DSC')
+                end = line.find('.jpg')
+                image = line[start + 8:end - 3]
+                number = line[start + 4:start + 8]
+                if number <= '8000':
+                    number = '1' + number
+                else:
+                    number = '0' + number
+                image_number = 'F' + image.replace('_', '') + number + line[end - 2:end]
+
+                # generate user_name for not_signed_in users
+                username = str(row['user_name'])
+                if row['user_id'] == '':
+                    username = pickip(str(row['user_ip']))
+                    if username == '':
+                        username = 'Visitor'
+
+                # generate the classification duration, which is more useful than start/finish times
+                line = str(row['metadata'])
+                start = line.find("tarted")
+                end = line.find('Z', start)
+                begin = line[start + 21:end - 4]
+                start = line.find('nished')
+                end = line.find('Z', start)
+                finish = line[start + 21:end - 4]
+                tdelta = datetime.strptime(finish, '%dT%H:%M:%S') - datetime.strptime(begin, '%dT%H:%M:%S')
+                if len(str(tdelta)) > 8:
+                    tdelta = '00:00:00'
+
+                # generate First task, deals with a pesky '\n' that appears in the "Too Noisy" response
+                annote_list = row['annotations']
+                first_task = annote_list[0]
+                task = str(first_task['value'])
+                if task.find('Noisy') >= 0:
+                    task = task[:10]
+
+                # pull out [x,y] and deals with out of bounds points, rounds data.
+                # several tests tacked onto this to handle singularities in the zooniverse data file
+                # specifically some "annotaions" structures so far from the norm as to crash the procedure,
+                # including null values for 'x', and no T3 at all in workflow 1961.
+                fossil_bones = []
+                stone_tools = []
+                maybe_somethings = []
+                if str(row['workflow_id']) != '1961':
+                    for items_of_interest in annote_list:
+                        if str(items_of_interest['task_label']).find('Mark any items') >= 0:
+                            list_points = items_of_interest['value']
+                            for points in list_points:
+                                if points['x'] is not None:
+                                    xi = int(round((points['x']), 1) * 10)
+                                    yi = int(round((points['y']), 1) * 10)
+                                    if xi in range(0, 7951) and yi in range(0, 5301):
+                                        x = float(xi) / 10
+                                        y = float(yi) / 10
+                                        if str(points).lower().find('bone') >= 0:
+                                            fossil_bones.append((x, y))
+                                        if str(points).lower().find('stone tool') >= 0:
+                                            stone_tools.append((x, y))
+                                        if str(points).lower().find('something') >= 0:
+                                            maybe_somethings.append((x, y))
+                    # return data to json format in preparation for writing, else later scripts may have issues
+                    summary_list = json.dumps([len(fossil_bones), len(stone_tools), len(maybe_somethings)])
+                    fossil_bones = json.dumps(fossil_bones)
+                    stone_tools = json.dumps(stone_tools)
+                    maybe_somethings = json.dumps(maybe_somethings)
+                    new_row = {'line_number': str(i), 'subject_ids': row['subject_ids'], 'image_number': image_number,
+                               'user_name': username, 'workflow_id': row['workflow_id'],
+                               'workflow_version': row['workflow_version'],
+                               'classification_id': row['classification_id'],
+                               'created_at': row['created_at'], 'duration': str(tdelta), 'first_task': task,
+                               'summary': summary_list, 'bones': fossil_bones, 'tools': stone_tools,
+                               'maybes': maybe_somethings}
+                    print(new_row)
+                    writer.writerow(new_row)
+                else:
+                    i += 1
