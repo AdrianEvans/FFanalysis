@@ -36,8 +36,7 @@ while numrows_raw_data > 0:
     if test1 > 0:
         img_name = rows1[rows1.find("Filename")+11:]
         img_name = img_name[:img_name.find("\"")]
-        date = ""
-        time = ""
+        date_time = ""
     else:
         img_name = rows1[rows1.find("Image_Name")+13:]
         img_name = img_name[:img_name.find("\"")]
