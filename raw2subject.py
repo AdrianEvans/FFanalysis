@@ -27,8 +27,8 @@ while numrows_raw_data > 0:
     rows1 = rows1.decode('utf-8')
     #print (rows1)
 
-    sub_id = rows1[rows1.find("subject_id")+12:]
-    sub_id = sub_id[:sub_id.find(",")]
+    sub_id = rows1[2:]
+    sub_id = sub_id[:sub_id.find("\"")]
     #print (sub_id)
 
 
