@@ -4,7 +4,7 @@
 
 
 import MySQLdb
-conn = MySQLdb.connect("server","username","password","database")
+conn = MySQLdb.connect("localhost","adrianevans","CJ3ByCTc!","fossilfinder")
 c = conn.cursor()
 
 # very unclean way of counting the number of rows in the raw data table to enable a while loop to count rows as it rips and parses each one
@@ -27,9 +27,9 @@ while numrows_raw_data > 0:
     rows1 = rows1.decode('utf-8')
     #print (rows1)
 
-    sub_id = rows1[rows1.find("subject_id")+12:]
-    sub_id = sub_id[:sub_id.find(",")]
-    #print (sub_id)
+    sub_id = rows1[2:]
+    sub_id = sub_id[:sub_id.find("\"")]
+    print (sub_id)
 
 
     test1 = rows1.find("Filename")
